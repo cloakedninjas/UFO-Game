@@ -40,7 +40,7 @@ var Game = {
             game.tick(event, target, game);
         });
 
-        
+
     },
 
     buildBg: function() {
@@ -62,10 +62,12 @@ var Game = {
         for (var i = 0; i < this.bg.length; i++) {
             var newX = this.bg[i].x - 5;
 
-            if (newX.x + this.bg[i].width < 0) {
-                delete this.bg[i];
-                continue;
+            if (newX == -10) {
+                //this.bg[i].x.visible = false;
+                game.bg[i].set({visible: false});
             }
+
+
             game.bg[i].set({x: newX});
 
             //console.log(game.bg[i].visible);
