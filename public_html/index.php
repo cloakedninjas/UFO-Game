@@ -12,6 +12,8 @@
     <body>
     
         <canvas id="game" width="500" height="500"></canvas>
+
+		<button>II</button>
         
     </body>
     
