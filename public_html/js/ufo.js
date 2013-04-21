@@ -27,7 +27,7 @@ var Game = {
 	spritesheets: {
 		cow: {
 			images: ['/images/cow_grass.png'],
-			frames: {width:34, height:34},
+			frames: {width:46, height:34},
 			animations: {
 				munch: [0,3]
 			}
@@ -48,8 +48,6 @@ var Game = {
         this.stage = new createjs.Stage(this.$canvas[0]);
 
         // preload assets
-		var img = new Image();
-		img.src = '/images/cow_grass.png';
 
 		// bind input
 		$(document).on('keydown', function(e) {
@@ -178,7 +176,8 @@ var Game = {
 
 		if (muncher) {
 			console.log('muncher');
-			var cow = new createjs.BitmapAnimation(this.spritesheets.cow);
+            var spritesheet = new createjs.SpriteSheet(this.spritesheets.cow);
+			var cow = new createjs.BitmapAnimation(spritesheet);
 			cow.gotoAndPlay('munch');
 		}
 		else {
