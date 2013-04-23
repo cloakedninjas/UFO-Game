@@ -1,5 +1,3 @@
-'usestrict';
-
 var Game = {
 
 	COW_SPAWN_DISTANCE: 150,
@@ -12,13 +10,7 @@ var Game = {
     stage: null,
 
     clouds: [],
-	grass: {
-		shape: null,
-		matrix: null,
-		img: null,
-		x: 0,
-		z: 10
-	},
+	grass: null,
     ufo: null,
     cows: [],
 
@@ -112,17 +104,17 @@ var Game = {
 		this.clouds.push(cloud);
 		this.stage.addChild(cloud);
 
+		var img = new Image();
+		img.src = '/images/grass_parallax.png';
 
-		this.grass.img = new Image();
-		this.grass.img.src = '/images/grass_parallax.png';
+		var matrix = new createjs.Matrix2D();
+		matrix.translate(0, -3);
 
-		this.grass.matrix = new createjs.Matrix2D();
-		this.grass.matrix.translate(0, -3);
-
-		var g = new createjs.Graphics().beginBitmapFill(this.grass.img, 'repeat-x', this.grass.matrix);
-		g.drawRect(0,291, this.viewport.width,14);
-		this.grass.shape = new createjs.Shape(g);
-		this.stage.addChild(this.grass.shape);
+		var g = new createjs.Graphics().beginBitmapFill(img, 'repeat-x', matrix);
+		g.drawRect(0,291, this.viewport.width + 116,14);
+		this.grass = new createjs.Shape(g);
+		this.grass.z = 3;
+		this.stage.addChild(this.grass);
 	},
 
     tick: function(event, target, game) {
@@ -159,15 +151,11 @@ var Game = {
 
 		// move grass
 		newX = this._getScrolledX(this.grass);
+
+		if (newX <= -116) {
+			newX = 0;
+		}
 		this.grass.x = newX;
-
-		//console.log(newX);
-		this.grass.matrix.translate(newX, -3);
-
-		this.grass.shape.graphics.clear().beginBitmapFill(this.grass.img, 'repeat-x', this.grass.matrix).drawRect(0,291, this.viewport.width,14);
-
-		//this.stage.addChild(this.grass.shape);
-
 
 		// ensure we have a steady supply of cows
 		var lastCow = this.cows[this.cows.length-1];
@@ -225,7 +213,7 @@ var Game = {
 			x = 0.1;
 		}
 
-		return obj.x - x;
+		return Math.round(obj.x - x);
 	},
 
 	moveUfo: function(dir) {
