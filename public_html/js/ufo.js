@@ -11,7 +11,13 @@ var Game = {
 
     clouds: [],
 	grass: null,
-    ufo: null,
+    ufo: {
+		hull: null,
+		beam: {
+			height: 0,
+			shape: null
+		}
+	},
     cows: [],
 
 	scrollSpeed: 5, // px per tick
@@ -56,6 +62,9 @@ var Game = {
 			else if (e.which === 38) {
 				game.actionKeys.moveUp = true;
 			}
+			else if (e.which === 32) {
+				game.actionKeys.beam = true;
+			}
 		});
 
 		$(document).on('keyup', function(e) {
@@ -64,6 +73,9 @@ var Game = {
 			}
 			else if (e.which === 38) {
 				game.actionKeys.moveUp = false;
+			}
+			else if (e.which === 32) {
+				game.actionKeys.beam = false;
 			}
 		});
 
@@ -77,9 +89,13 @@ var Game = {
         this.buildBg();
 
         // create UFO
-		this.ufo = new createjs.Bitmap("/images/ufo.png");
-		this.ufo.set({x: 30, y: 200});
-		this.stage.addChild(this.ufo);
+		this.ufo.hull = new createjs.Bitmap("/images/ufo.png");
+		this.ufo.hull.set({x: 30, y: 200});
+		this.stage.addChild(this.ufo.hull);
+
+		this.ufo.beam = new createjs.Bitmap("/images/beam_1.png");
+		this.ufo.beam.set({x: this.ufo.hull.x + 41, y: this.ufo.hull.y + 77});
+		this.stage.addChild(this.ufo.beam);
 
 		this._addCow(true);
 
@@ -223,7 +239,7 @@ var Game = {
 			y = y * -1;
 		}
 
-		y = this.ufo.y + y;
+		y = this.ufo.hull.y + y;
 
 		if (y <= 0) {
 			y = 0;
@@ -232,7 +248,15 @@ var Game = {
 			y = 400;
 		}
 
-		this.ufo.set({y: y});
+		this.ufo.hull.set({y: y});
+
+		this.ufo.beam.set({x: this.ufo.hull.x + 41, y: this.ufo.hull.y + 77});
+
+		
+	},
+
+	beam: function() {
+		console.log('b');
 	}
 };
 
