@@ -15,13 +15,14 @@ var Game = {
 		hull: null,
 		beam: {
 			height: 0,
-			shape: null
+			sprite: null
 		}
 	},
     cows: [],
 
 	scrollSpeed: 5, // px per tick
 	ufoMoveSpeed: 5,
+	ufoBeamSpeed: 10,
 
 	actionKeys: {
 		moveUp: false,
@@ -36,10 +37,19 @@ var Game = {
 			animations: {
 				munch: [0,3, 'munch', 5]
 			}
+		},
+		beam: {
+			images: ['/images/ufo_beam.png'],
+			frames: {width:46, height:34},
+			animations: {
+				munch: [0,3, 'munch', 5]
+			}
 		}
 	},
 
     init: function() {
+
+		var game = this;
 
         this.viewport.width = $(document).width();
         this.viewport.height = 438; //$(document).height();
@@ -76,6 +86,7 @@ var Game = {
 			}
 			else if (e.which === 32) {
 				game.actionKeys.beam = false;
+				game.beamOff();
 			}
 		});
 
@@ -93,15 +104,10 @@ var Game = {
 		this.ufo.hull.set({x: 30, y: 200});
 		this.stage.addChild(this.ufo.hull);
 
-		this.ufo.beam = new createjs.Bitmap("/images/beam_1.png");
-		this.ufo.beam.set({x: this.ufo.hull.x + 41, y: this.ufo.hull.y + 77});
-		this.stage.addChild(this.ufo.beam);
-
 		this._addCow(true);
 
         // start
 
-        var game = this;
         createjs.Ticker.addEventListener("tick", function(event, target) {
             game.tick(event, target, game);
         });
@@ -250,13 +256,29 @@ var Game = {
 
 		this.ufo.hull.set({y: y});
 
-		this.ufo.beam.set({x: this.ufo.hull.x + 41, y: this.ufo.hull.y + 77});
-
-		
+		if (this.actionKeys.beam) {
+			//this.ufo.beam.sprite.set({x: this.ufo.hull.x + 41, y: this.ufo.hull.y + 77});
+		}
 	},
 
 	beam: function() {
-		console.log('b');
+
+		if (this.ufo.beam.height === 0) {
+			this.ufo.beam.sprite = new createjs.Bitmap("/images/beam_1.png");
+			this.ufo.beam.sprite.set({x: this.ufo.hull.x + 41, y: this.ufo.hull.y + 77});
+			this.ufo.beam.sprite.sourceRect = new createjs.Rectangle(0,0,58,1);
+			this.stage.addChild(this.ufo.beam.sprite);
+
+			this.ufo.beam.height = 1;
+		} else {
+			this.ufo.beam.height += this.ufoBeamSpeed;
+			this.ufo.beam.sprite.sourceRect = new createjs.Rectangle(0,0,58,this.ufo.beam.height);
+		}
+	},
+
+	beamOff: function() {
+		this.stage.removeChild(this.ufo.beam.sprite);
+		this.ufo.beam.height = 0;
 	}
 };
 
