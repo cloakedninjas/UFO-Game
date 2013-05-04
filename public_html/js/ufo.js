@@ -1,6 +1,11 @@
+/* Make cows a gameObject, they have data attributes and reference to their displayObject */
+
 var Game = {
 
 	COW_SPAWN_DISTANCE: 150,
+	UFO_BEAM_MAX_HEIGHT: 339,
+	UFO_BEAM_SPEED: 20,
+	UFO_MOVE_SPEED: 10,
 
     viewport: {
         width: 0,
@@ -21,8 +26,6 @@ var Game = {
     cows: [],
 
 	scrollSpeed: 5, // px per tick
-	ufoMoveSpeed: 5,
-	ufoBeamSpeed: 10,
 
 	actionKeys: {
 		moveUp: false,
@@ -88,6 +91,9 @@ var Game = {
 				game.actionKeys.beam = false;
 				game.beamOff();
 			}
+			else if (e.which === 80) {
+				createjs.Ticker.setPaused(!createjs.Ticker.getPaused());
+			}
 		});
 
 		$('button').on('click', function(e) {
@@ -144,6 +150,8 @@ var Game = {
             return;
         }
 
+		var i;
+
 		// handle input
 
 		if (this.actionKeys.moveUp) {
@@ -158,7 +166,7 @@ var Game = {
 		}
 
         // move clouds
-        for (var i = 0; i < this.clouds.length; i++) {
+        for (i = 0; i < this.clouds.length; i++) {
 
 			var elem = this.clouds[i];
 
@@ -185,7 +193,7 @@ var Game = {
 			this._addCow();
 		}
 
-		for (var i = 0; i < this.cows.length; i++) {
+		for (i = 0; i < this.cows.length; i++) {
 			elem = this.cows[i];
 
 			newX = this._getScrolledX(elem);
@@ -196,6 +204,20 @@ var Game = {
 			}
 
 			elem.set({x: newX});
+		}
+
+		// if the beam is on - check if any cows can be sucked up
+		if (this.actionKeys.beam) {
+			if (this.ufo.beam.height > 100) {
+				for(i = 0; i < this.cows.length; i++) {
+					var cow = this.cows[i];
+
+					if (cow.x > 100 && cow.x < 200) {
+						// not right
+						cow.set({bitmap: '/images/cow_2.png'})
+					}
+				}
+			}
 		}
 
 		this.stage.update();
@@ -239,7 +261,7 @@ var Game = {
 	},
 
 	moveUfo: function(dir) {
-		var y = this.ufoMoveSpeed;
+		var y = Game.UFO_MOVE_SPEED;
 
 		if (dir === 'up') {
 			y = y * -1;
@@ -256,24 +278,26 @@ var Game = {
 
 		this.ufo.hull.set({y: y});
 
-		if (this.actionKeys.beam) {
-			//this.ufo.beam.sprite.set({x: this.ufo.hull.x + 41, y: this.ufo.hull.y + 77});
-		}
 	},
 
 	beam: function() {
 
 		if (this.ufo.beam.height === 0) {
 			this.ufo.beam.sprite = new createjs.Bitmap("/images/beam_1.png");
-			this.ufo.beam.sprite.set({x: this.ufo.hull.x + 41, y: this.ufo.hull.y + 77});
 			this.ufo.beam.sprite.sourceRect = new createjs.Rectangle(0,0,58,1);
 			this.stage.addChild(this.ufo.beam.sprite);
 
 			this.ufo.beam.height = 1;
-		} else {
-			this.ufo.beam.height += this.ufoBeamSpeed;
+		} else if (this.ufo.beam.height < (Game.UFO_BEAM_MAX_HEIGHT - Game.UFO_BEAM_SPEED)) {
+			this.ufo.beam.height += Game.UFO_BEAM_SPEED;
 			this.ufo.beam.sprite.sourceRect = new createjs.Rectangle(0,0,58,this.ufo.beam.height);
 		}
+		else {
+			this.ufo.beam.height = Game.UFO_BEAM_MAX_HEIGHT;
+			this.ufo.beam.sprite.sourceRect = new createjs.Rectangle(0,0,58,this.ufo.beam.height);
+		}
+
+		this.ufo.beam.sprite.set({x: this.ufo.hull.x + 41, y: this.ufo.hull.y + 77});
 	},
 
 	beamOff: function() {
