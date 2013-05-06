@@ -3,8 +3,12 @@
 var Game = {
 
 	COW_SPAWN_DISTANCE: 150,
+	UFO_X_POS: 30,
+	UFO_BEAM_LEFT_POS: 0,
+	UFO_BEAM_RIGHT_POS: 0,
 	UFO_BEAM_MAX_HEIGHT: 339,
 	UFO_BEAM_SPEED: 20,
+	UFO_SUCK_SPEED: 5,
 	UFO_MOVE_SPEED: 10,
 
     viewport: {
@@ -107,8 +111,11 @@ var Game = {
 
         // create UFO
 		this.ufo.hull = new createjs.Bitmap("/images/ufo.png");
-		this.ufo.hull.set({x: 30, y: 200});
+		this.ufo.hull.set({x: Game.UFO_X_POS, y: 200});
 		this.stage.addChild(this.ufo.hull);
+
+		Game.UFO_BEAM_LEFT_POS = Game.UFO_X_POS + 50;
+		Game.UFO_BEAM_RIGHT_POS = Game.UFO_X_POS + 110;
 
 		this._addCow(true);
 
@@ -193,17 +200,28 @@ var Game = {
 			this._addCow();
 		}
 
+		// move the cows
 		for (i = 0; i < this.cows.length; i++) {
 			elem = this.cows[i];
 
-			newX = this._getScrolledX(elem);
+			if (elem.sucked) {
+				var newY = elem.y - Game.UFO_SUCK_SPEED;
+				elem.set({y: newY});
 
-			if (newX <= -100) {
-				this.cows.splice(i, 1);
-				continue;
+				if (elem.y <= this.ufo.hull.y + 30) {
+					this.removeCow(elem);
+				}
 			}
+			else {
+				newX = this._getScrolledX(elem);
 
-			elem.set({x: newX});
+				if (newX <= -100) {
+					this.cows.splice(i, 1);
+					continue;
+				}
+
+				elem.set({x: newX});
+			}
 		}
 
 		// if the beam is on - check if any cows can be sucked up
@@ -212,9 +230,16 @@ var Game = {
 				for(i = 0; i < this.cows.length; i++) {
 					var cow = this.cows[i];
 
-					if (cow.x > 100 && cow.x < 200) {
-						// not right
-						cow.set({bitmap: '/images/cow_2.png'})
+					if (!cow.sucked && cow.x <= Game.UFO_BEAM_RIGHT_POS && cow.x >= Game.UFO_BEAM_LEFT_POS) {
+						var newCow = new createjs.Bitmap("/images/cow_2.png");
+
+						newCow.set({x: cow.x, y: cow.y, z: cow.z});
+						newCow.sucked = true;
+
+						this.cows.splice(i, 1, newCow);
+
+						this.stage.removeChild(cow);
+						this.stage.addChild(newCow);
 					}
 				}
 			}
@@ -245,9 +270,17 @@ var Game = {
 		}
 
 		cow.set({x: x, y: y, z: 3});
+		cow.sucked = false;
 
 		this.cows.push(cow);
 		this.stage.addChild(cow);
+	},
+
+	removeCow: function(cow) {
+		var index = this.cows.indexOf(cow);
+
+		this.cows.splice(index, 1);
+		this.stage.removeChild(cow);
 	},
 
 	_getScrolledX: function(obj) {
