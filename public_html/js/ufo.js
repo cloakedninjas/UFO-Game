@@ -1,7 +1,8 @@
 var Game = {
 
+    // constants
 	COW_SPAWN_DISTANCE: 150,
-	UFO_X_POS: 30,
+	UFO_X_POS: 100,
 	UFO_BEAM_LEFT_POS: 0,
 	UFO_BEAM_RIGHT_POS: 0,
 	UFO_BEAM_MAX_HEIGHT: 339,
@@ -9,6 +10,7 @@ var Game = {
 	UFO_SUCK_SPEED: 5,
 	UFO_MOVE_SPEED: 10,
 
+    // preload stuff
 	assets: [
 		'/images/beam_1.png',
 		'/images/cloud.png',
@@ -21,36 +23,32 @@ var Game = {
 
 	assetsLoaded: 0,
 
+    // core game
     viewport: {
         width: 0,
         height: 0
     },
     $canvas: null,
     stage: null,
+    scrollSpeed: 5, // px per tick
+    zIndexDirty: false,
+    actionKeys: {
+        moveUp: false,
+        moveDown: false,
+        beam: false
+    },
 
+    // game elements
     clouds: [],
 	grass: null,
-    ufo: {
-		hull: null,
-		beam: {
-			height: 0,
-			sprite: null
-		}
-	},
+    ufo: null,
     cows: [],
 
-	scrollSpeed: 5, // px per tick
-
-	actionKeys: {
-		moveUp: false,
-		moveDown: false,
-		beam: false
-	},
-
+    // animations
 	spritesheets: {
 		cow: {
 			images: ['/images/cow_grass.png'],
-			frames: {width:46, height:34},
+			frames: {width:46, height:34, regX: 23, regY:34},
 			animations: {
 				munch: [0,3, 'munch', 5]
 			}
@@ -65,7 +63,7 @@ var Game = {
 	},
 
     init: function() {
-        this.viewport.width = $(document).width();
+        this.viewport.width = 800; //$(document).width();
         this.viewport.height = 438; //$(document).height();
 
         this.$canvas = $('#game');
@@ -136,12 +134,16 @@ var Game = {
 		this.buildBg();
 
 		// create UFO
-		this.ufo.hull = new createjs.Bitmap("/images/ufo.png");
-		this.ufo.hull.set({x: Game.UFO_X_POS, y: 200});
-		this.stage.addChild(this.ufo.hull);
+        this.ufo = new GameObject();
+        this.ufo.setDisplayObject(new createjs.Bitmap("/images/ufo.png"));
+		this.ufo.set({x: Game.UFO_X_POS, y: 200, z: 0, regX: 69, regY: 38});
+        this.ufo.addToStage();
 
-		Game.UFO_BEAM_LEFT_POS = Game.UFO_X_POS + 50;
-		Game.UFO_BEAM_RIGHT_POS = Game.UFO_X_POS + 110;
+        this.ufo.beam = new GameObject();
+        this.ufo.beam.height = 0;
+
+		Game.UFO_BEAM_LEFT_POS = Game.UFO_X_POS - 32;
+		Game.UFO_BEAM_RIGHT_POS = Game.UFO_X_POS + 34;
 
 		this.addCow(true);
 
@@ -149,7 +151,7 @@ var Game = {
 
 		var game = this;
 		createjs.Ticker.addEventListener("tick", function(event, target) {
-			game.tick(event, target, game);
+			game.tick(event, target);
 		});
 
 		createjs.Ticker.setFPS(30);
@@ -179,12 +181,17 @@ var Game = {
 		this.stage.addChild(this.grass);
 	},
 
-    tick: function(event, target, game) {
+    tick: function(event, target) {
         if (event.paused) {
             return;
         }
 
-		var i;
+        var i;
+
+        if (this.zIndexDirty) {
+            this.stage.children.sort(this.zIndexCompare);
+            this.zIndexDirty = false;
+        }
 
 		// handle input
 
@@ -232,11 +239,30 @@ var Game = {
 		for (i = 0; i < this.cows.length; i++) {
 			cow = this.cows[i];
 
-			if (elem.sucked) {
+			if (cow.sucked) {
 				var newY = cow.y - Game.UFO_SUCK_SPEED;
 				cow.set({y: newY});
 
-				if (cow.y <= this.ufo.hull.y + 30) {
+                if (!cow.startled && cow.y <= 300) {
+                    // swap out cow for startled
+
+                    var newCow = new GameObject();
+                    newCow.setDisplayObject(new createjs.Bitmap("/images/cow_2.png"));
+
+                    newCow.set({x: cow.x, y: cow.y, z: cow.z, regX: 23, regY: 34, startled: true});
+
+                    this.cows.splice(i, 1, newCow);
+
+                    cow.removeFromStage();
+                    newCow.addToStage();
+                    /*
+                    var img = new Image();
+                    img.src = '/images/cow_2.png';
+                    cow.set({startled: true, image: img});
+                    */
+                }
+
+				if (cow.y <= this.ufo.y + 30) {
 					this.removeCow(cow);
 				}
 			}
@@ -258,16 +284,8 @@ var Game = {
 				for(i = 0; i < this.cows.length; i++) {
 					var cow = this.cows[i];
 
-					if (!cow.sucked && cow.x <= Game.UFO_BEAM_RIGHT_POS && cow.x >= Game.UFO_BEAM_LEFT_POS) {
-						var newCow = new GameObject();
-						newCow.do = new createjs.Bitmap("/images/cow_2.png");
-
-						newCow.set({x: cow.x, y: cow.y, z: cow.z, sucked: true});
-
-						this.cows.splice(i, 1, newCow);
-
-						cow.removeFromStage();
-						newCow.addToStage();
+					if (!cow.sucked && cow.x <= Game.UFO_X_POS) {
+                        cow.sucked = true;
 					}
 				}
 			}
@@ -297,8 +315,7 @@ var Game = {
 			x += Math.round(Math.random() * 200);
 		}
 
-		cow.set({x: x, y: y, z: 3});
-		cow.sucked = false;
+		cow.set({x: x, y: y, z: 3, regX: 23, regY: 34, sucked: false, startled: false});
 
 		this.cows.push(cow);
 		cow.addToStage();
@@ -328,7 +345,7 @@ var Game = {
 			y = y * -1;
 		}
 
-		y = this.ufo.hull.y + y;
+		y = this.ufo.y + y;
 
 		if (y <= 0) {
 			y = 0;
@@ -337,34 +354,43 @@ var Game = {
 			y = 400;
 		}
 
-		this.ufo.hull.set({y: y});
+		this.ufo.set({y: y});
 
 	},
 
 	beam: function() {
 
 		if (this.ufo.beam.height === 0) {
-			this.ufo.beam.sprite = new createjs.Bitmap("/images/beam_1.png");
-			this.ufo.beam.sprite.sourceRect = new createjs.Rectangle(0,0,58,1);
-			this.stage.addChild(this.ufo.beam.sprite);
+            this.ufo.beam.setDisplayObject(new createjs.Bitmap("/images/beam_1.png"));
+			//this.ufo.beam.sprite = new createjs.Bitmap("/images/beam_1.png");
+            this.ufo.beam.set({'z': 1, height: 1});
+            this.ufo.beam.addToStage();
+			//this.stage.addChild(this.ufo.beam.sprite);
 
-			this.ufo.beam.height = 1;
+
 		} else if (this.ufo.beam.height < (Game.UFO_BEAM_MAX_HEIGHT - Game.UFO_BEAM_SPEED)) {
 			this.ufo.beam.height += Game.UFO_BEAM_SPEED;
-			this.ufo.beam.sprite.sourceRect = new createjs.Rectangle(0,0,58,this.ufo.beam.height);
 		}
 		else {
 			this.ufo.beam.height = Game.UFO_BEAM_MAX_HEIGHT;
-			this.ufo.beam.sprite.sourceRect = new createjs.Rectangle(0,0,58,this.ufo.beam.height);
 		}
 
-		this.ufo.beam.sprite.set({x: this.ufo.hull.x + 41, y: this.ufo.hull.y + 77});
+        this.ufo.beam.getDisplayObject().sourceRect = new createjs.Rectangle(0,0,58,this.ufo.beam.height);
+		this.ufo.beam.set({x: this.ufo.x - 28, y: this.ufo.y + 30});
 	},
 
 	beamOff: function() {
-		this.stage.removeChild(this.ufo.beam.sprite);
+        this.ufo.beam.removeFromStage();
 		this.ufo.beam.height = 0;
-	}
+	},
+
+    zIndexCompare: function compare(a,b) {
+        if (a.z < b.z)
+            return 1;
+        if (a.z > b.z)
+            return -1;
+        return 0;
+    }
 };
 
 function GameObject () {
@@ -381,17 +407,31 @@ GameObject.prototype.set = function(p, v) {
 	else {
 		this[p] = v;
 
-		if (p === 'x' || p === 'y') {
+		if (p === 'x' || p === 'y' || p === 'z' || p === 'regX' || p === 'regY') {
 			this.do[p] = v;
 		}
 	}
 };
 
+GameObject.prototype.setDisplayObject = function(d) {
+    this.do = d;
+};
+
+GameObject.prototype.getDisplayObject = function() {
+    return this.do;
+};
+
 GameObject.prototype.addToStage = function() {
+    if (this.z === null) {
+        this.z = 5;
+    }
+
+    Game.zIndexDirty = true;
 	Game.stage.addChild(this.do);
 };
 
 GameObject.prototype.removeFromStage = function() {
+    Game.zIndexDirty = true;
 	Game.stage.removeChild(this.do);
 };
 
