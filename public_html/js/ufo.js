@@ -7,8 +7,18 @@ var Game = {
 	UFO_BEAM_RIGHT_POS: 106,
 	UFO_BEAM_MAX_HEIGHT: 339,
 	UFO_BEAM_SPEED: 30,
-	UFO_SUCK_SPEED: 5,
+	UFO_SUCK_SPEED: 7,
 	UFO_MOVE_SPEED: 10,
+
+    Z_INDEX: {
+        UFO: 5,
+        COW: 6,
+        BEAM: 7,
+        COW_SHADOW: 8,
+        GRASS: 9,
+        CLOUD: 10,
+        STARS: 11
+    },
 
     // preload stuff
 	assets: [
@@ -18,6 +28,7 @@ var Game = {
 		'/images/cow.png',
 		'/images/cow_2.png',
 		'/images/cow_grass.png',
+        '/images/shadow_cow.png',
 		'/images/grass_parallax.png',
 		'/images/ufo.png'
 	],
@@ -143,7 +154,7 @@ var Game = {
 		// create UFO
         this.ufo = new GameObject();
         this.ufo.setDisplayObject(new createjs.Bitmap("/images/ufo.png"));
-		this.ufo.set({x: Game.UFO_X_POS, y: 200, z: 0, regX: 69, regY: 38});
+		this.ufo.set({x: Game.UFO_X_POS, y: 200, z: Game.Z_INDEX.UFO, regX: 69, regY: 38});
         this.ufo.addToStage();
 
         this.ufo.beam = new GameObject();
@@ -175,7 +186,7 @@ var Game = {
 
         this.stars = new GameObject();
         this.stars.setDisplayObject(new createjs.Bitmap("/images/stars.png"));
-        this.stars.set({x: 0, y: 0, z: 11});
+        this.stars.set({x: 0, y: 0, z: Game.Z_INDEX.STARS});
         this.stars.addToStage();
 
 		var img = new Image();
@@ -187,7 +198,7 @@ var Game = {
 		var g = new createjs.Graphics().beginBitmapFill(img, 'repeat-x', matrix);
 		g.drawRect(0,291, this.viewport.width + 116,14);
 		this.grass = new createjs.Shape(g);
-		this.grass.z = 3;
+		this.grass.z = Game.Z_INDEX.GRASS;
 		this.stage.addChild(this.grass);
 	},
 
@@ -254,19 +265,29 @@ var Game = {
 
 			if (cow.sucked) {
 				var newY = cow.y - Game.UFO_SUCK_SPEED;
-				cow.set({y: newY});
+                var suckDistance = cow.startY - newY;
+                var scale = ((suckDistance * 100) - suckDistance) / 100;
 
-                if (!cow.startled && cow.y <= 300) {
+                cow.set({y: newY});
+
+                    //[0].set({scaleX: scale, scaleY: scale}); // shrink the shadow
+
+                if (scale < 0.1) {
+                    console.log('yo');
+                }
+
+                if (!cow.muncher && !cow.startled && suckDistance > 10) {
                     // swap out cow for startled
-                    var newCow = new GameObject();
-                    newCow.setDisplayObject(new createjs.Bitmap("/images/cow_2.png"));
+                    cow.updateDisplayObject(new createjs.Bitmap("/images/cow_2.png"));
+                    cow.set({regX: 21, regY: 32, startled: true});
 
-                    newCow.set({x: cow.x, y: cow.y, z: cow.z, regX: 21, regY: 32, startled: true, sucked: true});
+                    /*
+                     var shadow = new GameObject();
+                     shadow.setDisplayObject(new createjs.Bitmap("/images/shadow_cow.png"));
+                     shadow.set({x: cow.x, y: cow.y, z: Game.Z_INDEX.COW_SHADOW, regX: 25, regY: 10});
+                     cow.addChild(shadow);
 
-                    this.cows.splice(i, 1, newCow);
-
-                    cow.removeFromStage();
-                    newCow.addToStage();
+                     */
                 }
 
                 // if cow reaches UFO, abduction complete
@@ -283,6 +304,7 @@ var Game = {
 				}
 
 				cow.set({x: newX});
+                cow.getChildren()[0].set({x: newX}); // move the shadow
 			}
 		}
 
@@ -307,11 +329,11 @@ var Game = {
 
 		if (muncher) {
             var spritesheet = new createjs.SpriteSheet(this.spritesheets.cow);
-			cow.do = new createjs.BitmapAnimation(spritesheet);
-			cow.do.gotoAndPlay('munch');
+            cow.setDisplayObject(new createjs.BitmapAnimation(spritesheet));
+			cow.getDisplayObject().gotoAndPlay('munch');
 		}
 		else {
-			cow.do = new createjs.Bitmap("/images/cow.png");
+			cow.setDisplayObject(new createjs.Bitmap("/images/cow.png"));
             cow.set({regX: 21, regY: 34});
 		}
 
@@ -322,7 +344,14 @@ var Game = {
 			x += Math.round(Math.random() * 200);
 		}
 
-		cow.set({x: x, y: y, z: 2, sucked: false, startled: false});
+		cow.set({x: x, y: y, z: Game.Z_INDEX.COW, sucked: false, startled: false, muncher: muncher, startY: y});
+
+        // shadow
+
+        var shadow = new GameObject();
+        shadow.setDisplayObject(new createjs.Bitmap("/images/shadow_cow.png"));
+        shadow.set({x: cow.x, y: cow.y, z: Game.Z_INDEX.COW_SHADOW, regX: 25, regY: 10});
+        cow.addChild(shadow);
 
 		this.cows.push(cow);
 		cow.addToStage();
@@ -332,7 +361,7 @@ var Game = {
 		var index = this.cows.indexOf(cow);
 
 		this.cows.splice(index, 1);
-		this.stage.removeChild(cow.getDisplayObject());
+        cow.removeFromStage();
 	},
 
 	_getScrolledX: function(obj) {
@@ -369,13 +398,10 @@ var Game = {
 
 		if (this.ufo.beam.height === 0) {
             this.ufo.beam.setDisplayObject(new createjs.Bitmap("/images/beam_1.png"));
-			//this.ufo.beam.sprite = new createjs.Bitmap("/images/beam_1.png");
-            this.ufo.beam.set({'z': 3, height: 1});
+            this.ufo.beam.set({z: Game.Z_INDEX.BEAM, height: 1});
             this.ufo.beam.addToStage();
-			//this.stage.addChild(this.ufo.beam.sprite);
-
-
-		} else if (this.ufo.beam.height < (Game.UFO_BEAM_MAX_HEIGHT - Game.UFO_BEAM_SPEED)) {
+		}
+        else if (this.ufo.beam.height < (Game.UFO_BEAM_MAX_HEIGHT - Game.UFO_BEAM_SPEED)) {
 			this.ufo.beam.height += Game.UFO_BEAM_SPEED;
 		}
 		else {
@@ -401,44 +427,93 @@ var Game = {
 };
 
 function GameObject () {
-	this.do = null;
+	this._do = {};
+    this._children = [];
 }
 
-GameObject.prototype.set = function(p, v) {
+GameObject.prototype = (function () {
 
-	if (typeof p === 'object') {
-		for (var prop in p) {
-			this.set(prop, p[prop]);
-		}
-	}
-	else {
-		this[p] = v;
+    function set(p, v) {
+        if (typeof p === 'object') {
+            for (var prop in p) {
+                this.set(prop, p[prop]);
+            }
+        }
+        else {
+            this[p] = v;
 
-		if (p === 'x' || p === 'y' || p === 'z' || p === 'regX' || p === 'regY') {
-			this.do[p] = v;
-		}
-	}
-};
-
-GameObject.prototype.setDisplayObject = function(d) {
-    this.do = d;
-};
-
-GameObject.prototype.getDisplayObject = function() {
-    return this.do;
-};
-
-GameObject.prototype.addToStage = function() {
-    if (this.z === null) {
-        this.z = 5;
+            if (p === 'x' || p === 'y' || p === 'z' || p === 'regX' || p === 'regY' || p === 'scaleX' || p === 'scaleY') {
+                this._do[p] = v;
+            }
+        }
     }
 
-    Game.stageQueue.push(this.do)
-};
+    function setDisplayObject (d) {
+        this._do = d;
+    }
 
-GameObject.prototype.removeFromStage = function() {
-	Game.stage.removeChild(this.do);
-};
+    function getDisplayObject() {
+        return this._do;
+    }
+
+    function getChildren() {
+        return this._children;
+    }
+
+    function addChild(c) {
+        this._children.push(c);
+    }
+
+    function addToStage() {
+        if (this.z === null) {
+            this.z = 5;
+        }
+
+        Game.stageQueue.push(this._do);
+
+        for (var i = 0; i < this.getChildren().length; i++) {
+            Game.stageQueue.push(this.getChildren()[i]._do);
+        }
+    }
+
+    function removeFromStage() {
+        Game.stage.removeChild(this._do);
+
+        for (var i = 0; i < this.getChildren().length; i++) {
+            Game.stage.removeChild(this.getChildren()[i]._do);
+        }
+    }
+
+    /**
+     * Update the display object with another, inheriting the previous params
+     * @param o The new displayObject
+     */
+    function updateDisplayObject(o) {
+        Game.stage.removeChild(this._do);
+        this._do = o;
+
+        for (var p in this) {
+            if (p === 'x' || p === 'y' || p === 'z' || p === 'regX' || p === 'regY' || p === 'scaleX' || p === 'scaleY') {
+                this._do[p] = this[p];
+            }
+        }
+        Game.stageQueue.push(this._do);
+    }
+
+    // public API
+    return {
+        set: set,
+        setDisplayObject: setDisplayObject,
+        getDisplayObject: getDisplayObject,
+        getChildren: getChildren,
+        addChild: addChild,
+        addToStage: addToStage,
+        removeFromStage: removeFromStage,
+        updateDisplayObject: updateDisplayObject
+    };
+
+})();
+
 
 $(document).ready(function() {
 	Game.init();
