@@ -3,10 +3,10 @@ var Game = {
     // constants
 	COW_SPAWN_DISTANCE: 150,
 	UFO_X_POS: 100,
-	UFO_BEAM_LEFT_POS: 0,
-	UFO_BEAM_RIGHT_POS: 0,
+	UFO_BEAM_LEFT_POS: 91,
+	UFO_BEAM_RIGHT_POS: 106,
 	UFO_BEAM_MAX_HEIGHT: 339,
-	UFO_BEAM_SPEED: 20,
+	UFO_BEAM_SPEED: 30,
 	UFO_SUCK_SPEED: 5,
 	UFO_MOVE_SPEED: 10,
 
@@ -14,6 +14,7 @@ var Game = {
 	assets: [
 		'/images/beam_1.png',
 		'/images/cloud.png',
+        '/images/stars.png',
 		'/images/cow.png',
 		'/images/cow_2.png',
 		'/images/cow_grass.png',
@@ -31,15 +32,18 @@ var Game = {
     $canvas: null,
     stage: null,
     scrollSpeed: 5, // px per tick
-    zIndexDirty: false,
+
     actionKeys: {
         moveUp: false,
         moveDown: false,
         beam: false
     },
 
+    stageQueue: [],
+
     // game elements
     clouds: [],
+    stars: null,
 	grass: null,
     ufo: null,
     cows: [],
@@ -48,9 +52,12 @@ var Game = {
 	spritesheets: {
 		cow: {
 			images: ['/images/cow_grass.png'],
-			frames: {width:46, height:34, regX: 23, regY:34},
+			frames: {width:46, height:34, count: 4, regX: 23, regY: 34},
 			animations: {
-				munch: [0,3, 'munch', 5]
+				munch: {
+                    frames: [0,1,2,3],
+                    frequency: 5
+                }
 			}
 		},
 		beam: {
@@ -142,9 +149,6 @@ var Game = {
         this.ufo.beam = new GameObject();
         this.ufo.beam.height = 0;
 
-		Game.UFO_BEAM_LEFT_POS = Game.UFO_X_POS - 32;
-		Game.UFO_BEAM_RIGHT_POS = Game.UFO_X_POS + 34;
-
 		this.addCow(true);
 
 		// start
@@ -159,14 +163,20 @@ var Game = {
 
     buildBg: function() {
 
-		var cloud = new createjs.Bitmap("/images/cloud.png");
+        var cloud = new GameObject();
+        cloud.setDisplayObject(new createjs.Bitmap("/images/cloud.png"));
 
 		var x = Math.round(Math.random() * this.viewport.width);
 
-		cloud.set({x: x, y: 10, z: 10});
+        cloud.set({x: x, y: 10, z: 10});
+        cloud.addToStage();
 
 		this.clouds.push(cloud);
-		this.stage.addChild(cloud);
+
+        this.stars = new GameObject();
+        this.stars.setDisplayObject(new createjs.Bitmap("/images/stars.png"));
+        this.stars.set({x: 0, y: 0, z: 11});
+        this.stars.addToStage();
 
 		var img = new Image();
 		img.src = '/images/grass_parallax.png';
@@ -188,9 +198,13 @@ var Game = {
 
         var i;
 
-        if (this.zIndexDirty) {
+        if (this.stageQueue.length > 0) {
+            for (i = 0; i < this.stageQueue.length; i++) {
+                this.stage.addChild(this.stageQueue[i]);
+            }
+            this.stageQueue = [];
+
             this.stage.children.sort(this.zIndexCompare);
-            this.zIndexDirty = false;
         }
 
 		// handle input
@@ -209,16 +223,15 @@ var Game = {
         // move clouds
         for (i = 0; i < this.clouds.length; i++) {
 
-			var elem = this.clouds[i];
+			var cloud = this.clouds[i];
 
-            var newX = this._getScrolledX(elem);
+            var newX = this._getScrolledX(cloud);
 
             if (newX <= -300) {
                 newX = this.viewport.width + Math.round(Math.random() * 200);
             }
 
-            //elem.set({x: newX});
-			elem.x = newX;
+            cloud.set({x: newX});
         }
 
 		// move grass
@@ -245,32 +258,27 @@ var Game = {
 
                 if (!cow.startled && cow.y <= 300) {
                     // swap out cow for startled
-
                     var newCow = new GameObject();
                     newCow.setDisplayObject(new createjs.Bitmap("/images/cow_2.png"));
 
-                    newCow.set({x: cow.x, y: cow.y, z: cow.z, regX: 23, regY: 34, startled: true});
+                    newCow.set({x: cow.x, y: cow.y, z: cow.z, regX: 21, regY: 32, startled: true, sucked: true});
 
                     this.cows.splice(i, 1, newCow);
 
                     cow.removeFromStage();
                     newCow.addToStage();
-                    /*
-                    var img = new Image();
-                    img.src = '/images/cow_2.png';
-                    cow.set({startled: true, image: img});
-                    */
                 }
 
-				if (cow.y <= this.ufo.y + 30) {
+                // if cow reaches UFO, abduction complete
+				if (cow.y <= this.ufo.y + 10) {
 					this.removeCow(cow);
 				}
 			}
 			else {
 				newX = this._getScrolledX(cow);
 
-				if (newX <= -100) {
-					this.cows.splice(i, 1);
+				if (newX <= -50) {
+                    this.removeCow(cow);
 					continue;
 				}
 
@@ -279,16 +287,14 @@ var Game = {
 		}
 
 		// if the beam is on - check if any cows can be sucked up
-		if (this.actionKeys.beam) {
-			if (this.ufo.beam.height > 100) {
-				for(i = 0; i < this.cows.length; i++) {
-					var cow = this.cows[i];
+		if (this.actionKeys.beam && this.ufo.beam.height > 100) {
+            for(i = 0; i < this.cows.length; i++) {
+                var cow = this.cows[i];
 
-					if (!cow.sucked && cow.x <= Game.UFO_X_POS) {
-                        cow.sucked = true;
-					}
-				}
-			}
+                if (!cow.sucked && cow.x <= Game.UFO_BEAM_RIGHT_POS && cow.x >= Game.UFO_BEAM_LEFT_POS) {
+                    cow.sucked = true;
+                }
+            }
 		}
 
 		this.stage.update();
@@ -306,16 +312,17 @@ var Game = {
 		}
 		else {
 			cow.do = new createjs.Bitmap("/images/cow.png");
+            cow.set({regX: 21, regY: 34});
 		}
 
-		var y = 300 + Math.round(Math.random() * 100);
+		var y = 340 + Math.round(Math.random() * 100);
 		var x = this.viewport.width;
 
 		if (!immediate) {
 			x += Math.round(Math.random() * 200);
 		}
 
-		cow.set({x: x, y: y, z: 3, regX: 23, regY: 34, sucked: false, startled: false});
+		cow.set({x: x, y: y, z: 2, sucked: false, startled: false});
 
 		this.cows.push(cow);
 		cow.addToStage();
@@ -325,7 +332,7 @@ var Game = {
 		var index = this.cows.indexOf(cow);
 
 		this.cows.splice(index, 1);
-		this.stage.removeChild(cow);
+		this.stage.removeChild(cow.getDisplayObject());
 	},
 
 	_getScrolledX: function(obj) {
@@ -363,7 +370,7 @@ var Game = {
 		if (this.ufo.beam.height === 0) {
             this.ufo.beam.setDisplayObject(new createjs.Bitmap("/images/beam_1.png"));
 			//this.ufo.beam.sprite = new createjs.Bitmap("/images/beam_1.png");
-            this.ufo.beam.set({'z': 1, height: 1});
+            this.ufo.beam.set({'z': 3, height: 1});
             this.ufo.beam.addToStage();
 			//this.stage.addChild(this.ufo.beam.sprite);
 
@@ -400,7 +407,7 @@ function GameObject () {
 GameObject.prototype.set = function(p, v) {
 
 	if (typeof p === 'object') {
-		for (prop in p) {
+		for (var prop in p) {
 			this.set(prop, p[prop]);
 		}
 	}
@@ -426,12 +433,10 @@ GameObject.prototype.addToStage = function() {
         this.z = 5;
     }
 
-    Game.zIndexDirty = true;
-	Game.stage.addChild(this.do);
+    Game.stageQueue.push(this.do)
 };
 
 GameObject.prototype.removeFromStage = function() {
-    Game.zIndexDirty = true;
 	Game.stage.removeChild(this.do);
 };
 
