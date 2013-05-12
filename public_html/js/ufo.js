@@ -266,28 +266,23 @@ var Game = {
 			if (cow.sucked) {
 				var newY = cow.y - Game.UFO_SUCK_SPEED;
                 var suckDistance = cow.startY - newY;
-                var scale = ((suckDistance * 100) - suckDistance) / 100;
+                var scale = 1 - (suckDistance / 200);
 
                 cow.set({y: newY});
 
-                    //[0].set({scaleX: scale, scaleY: scale}); // shrink the shadow
-
-                if (scale < 0.1) {
-                    console.log('yo');
+                if (cow.getChildren().length === 1) {
+                    if (scale <= 0.1) {
+                        cow.removeChildAt(0);
+                    }
+                    else {
+                        cow.getChildren()[0].set({scaleX: scale, scaleY: scale}); // shrink the shadow
+                    }
                 }
 
                 if (!cow.muncher && !cow.startled && suckDistance > 10) {
                     // swap out cow for startled
                     cow.updateDisplayObject(new createjs.Bitmap("/images/cow_2.png"));
                     cow.set({regX: 21, regY: 32, startled: true});
-
-                    /*
-                     var shadow = new GameObject();
-                     shadow.setDisplayObject(new createjs.Bitmap("/images/shadow_cow.png"));
-                     shadow.set({x: cow.x, y: cow.y, z: Game.Z_INDEX.COW_SHADOW, regX: 25, regY: 10});
-                     cow.addChild(shadow);
-
-                     */
                 }
 
                 // if cow reaches UFO, abduction complete
@@ -464,6 +459,11 @@ GameObject.prototype = (function () {
         this._children.push(c);
     }
 
+    function removeChildAt(i) {
+        this._children[i].removeFromStage();
+        this._children.splice(i, 1);
+    }
+
     function addToStage() {
         if (this.z === null) {
             this.z = 5;
@@ -507,6 +507,7 @@ GameObject.prototype = (function () {
         getDisplayObject: getDisplayObject,
         getChildren: getChildren,
         addChild: addChild,
+        removeChildAt: removeChildAt,
         addToStage: addToStage,
         removeFromStage: removeFromStage,
         updateDisplayObject: updateDisplayObject
