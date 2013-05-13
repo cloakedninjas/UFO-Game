@@ -16,8 +16,8 @@ var Game = {
         BEAM: 7,
         COW_SHADOW: 8,
         GRASS: 9,
-        CLOUD: 10,
-        STARS: 11
+        CLOUD: 13,
+        STARS: 15
     },
 
     // preload stuff
@@ -33,6 +33,10 @@ var Game = {
 		'/images/ufo.png'
 	],
 
+    debug: {
+        fps: null
+    },
+
 	assetsLoaded: 0,
 
     // core game
@@ -42,7 +46,7 @@ var Game = {
     },
     $canvas: null,
     stage: null,
-    scrollSpeed: 5, // px per tick
+    scrollSpeed: 100, // px per sec
 
     actionKeys: {
         moveUp: false,
@@ -179,7 +183,7 @@ var Game = {
 
 		var x = Math.round(Math.random() * this.viewport.width);
 
-        cloud.set({x: x, y: 10, z: 10});
+        cloud.set({x: x, y: 10, z: Game.Z_INDEX.CLOUD});
         cloud.addToStage();
 
 		this.clouds.push(cloud);
@@ -195,17 +199,28 @@ var Game = {
 		var matrix = new createjs.Matrix2D();
 		matrix.translate(0, -3);
 
-		var g = new createjs.Graphics().beginBitmapFill(img, 'repeat-x', matrix);
+		var g = new createjs.Graphics().beginBitmapFill(img, 'repeat', matrix);
 		g.drawRect(0,291, this.viewport.width + 116,14);
-		this.grass = new createjs.Shape(g);
-		this.grass.z = Game.Z_INDEX.GRASS;
-		this.stage.addChild(this.grass);
+
+        this.grass = new GameObject();
+        this.grass.setDisplayObject(new createjs.Shape(g));
+        this.grass.set({x: 0, z: Game.Z_INDEX.GRASS});
+        this.grass.addToStage();
+
+        this.debug.fps = new createjs.Text(createjs.Ticker.getMeasuredFPS(), "20px Arial", "#ff7700");
+        this.debug.fps.x = 50;
+        this.debug.fps.y = 50;
+        this.debug.fps.textBaseline = "alphabetic";
+
+        this.stage.addChild(this.debug.fps);
 	},
 
     tick: function(event, target) {
         if (event.paused) {
             return;
         }
+
+        this.debug.fps.set({text: Math.round(createjs.Ticker.getMeasuredFPS())});
 
         var i;
 
@@ -236,7 +251,7 @@ var Game = {
 
 			var cloud = this.clouds[i];
 
-            var newX = this._getScrolledX(cloud);
+            var newX = this._getScrolledX(cloud, event.delta);
 
             if (newX <= -300) {
                 newX = this.viewport.width + Math.round(Math.random() * 200);
@@ -246,12 +261,12 @@ var Game = {
         }
 
 		// move grass
-		newX = this._getScrolledX(this.grass);
+		newX = this._getScrolledX(this.grass, event.delta);
 
 		if (newX <= -116) {
 			newX = 0;
 		}
-		this.grass.x = newX;
+		this.grass.set('x', newX);
 
 		// ensure we have a steady supply of cows
 		var lastCow = this.cows[this.cows.length-1];
@@ -291,7 +306,7 @@ var Game = {
 				}
 			}
 			else {
-				newX = this._getScrolledX(cow);
+				newX = this._getScrolledX(cow, event.delta);
 
 				if (newX <= -50) {
                     this.removeCow(cow);
@@ -359,15 +374,19 @@ var Game = {
         cow.removeFromStage();
 	},
 
-	_getScrolledX: function(obj) {
-		var x = this.scrollSpeed - (0.3 * obj.z);
+	_getScrolledX: function(obj, delta) {
+		var x = this._getMoveDistance(delta, this.scrollSpeed) - (0.1 * obj.z);
 
 		if (x <= 0) {
 			x = 0.1;
 		}
 
-		return Math.round(obj.x - x);
+		return obj.x - x;
 	},
+
+    _getMoveDistance: function(delta, pixelsPerSecond) {
+      return delta / 1000 * pixelsPerSecond
+    },
 
 	moveUfo: function(dir) {
 		var y = Game.UFO_MOVE_SPEED;
@@ -424,6 +443,7 @@ var Game = {
 function GameObject () {
 	this._do = {};
     this._children = [];
+    this._doProps = ['x', 'y', 'z', 'regX', 'regY', 'scaleX', 'scaleY'];
 }
 
 GameObject.prototype = (function () {
@@ -437,7 +457,7 @@ GameObject.prototype = (function () {
         else {
             this[p] = v;
 
-            if (p === 'x' || p === 'y' || p === 'z' || p === 'regX' || p === 'regY' || p === 'scaleX' || p === 'scaleY') {
+            if (this._doProps.indexOf(p) !== -1) {
                 this._do[p] = v;
             }
         }
@@ -493,7 +513,7 @@ GameObject.prototype = (function () {
         this._do = o;
 
         for (var p in this) {
-            if (p === 'x' || p === 'y' || p === 'z' || p === 'regX' || p === 'regY' || p === 'scaleX' || p === 'scaleY') {
+            if (this._doProps.indexOf(p) !== -1) {
                 this._do[p] = this[p];
             }
         }
