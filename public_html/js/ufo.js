@@ -30,6 +30,7 @@ var Game = {
 		'/images/cow_grass.png',
         '/images/shadow_cow.png',
 		'/images/grass_parallax.png',
+        '/images/grass_1.png',
 		'/images/ufo.png'
 	],
 
@@ -60,6 +61,7 @@ var Game = {
     clouds: [],
     stars: null,
 	grass: null,
+    grassTufts: [],
     ufo: null,
     cows: [],
 
@@ -207,6 +209,10 @@ var Game = {
         this.grass.set({x: 0, z: Game.Z_INDEX.GRASS});
         this.grass.addToStage();
 
+        for (var i = 0; i < 4; i++) {
+            this.addGrassTuft(true);
+        }
+
         /*
         this.debug.fps = new createjs.Text(createjs.Ticker.getMeasuredFPS(), "20px Arial", "#ff7700");
         this.debug.fps.x = 50;
@@ -268,6 +274,14 @@ var Game = {
 			newX = 0;
 		}
 		this.grass.set('x', newX);
+
+        for (i = 0; i < this.grassTufts.length; i++) {
+            newX = this.grassTufts[i].x + this._getScrolledX(this.grass, event.delta);
+            if (i === 0) {
+                console.log(newX);
+            }
+            this.grassTufts[i].set('x', newX);
+        }
 
 		// ensure we have a steady supply of cows
 		var lastCow = this.cows[this.cows.length-1];
@@ -374,6 +388,21 @@ var Game = {
 		this.cows.splice(index, 1);
         cow.removeFromStage();
 	},
+
+    addGrassTuft: function(immediate) {
+        var tuft = new GameObject();
+        var minY = 325;
+        var maxY = this.viewport.height;
+
+        var x = Math.floor(Math.random() * this.viewport.width);
+        var y = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
+
+        tuft.setDisplayObject(new createjs.Bitmap("/images/grass_1.png"));
+        tuft.set({x: x, y: y, z: Game.Z_INDEX.GRASS, regY: 27});
+        tuft.addToStage();
+
+        this.grassTufts.push(tuft);
+    },
 
 	_getScrolledX: function(obj, delta) {
 		var x = this._getMoveDistance(delta, this.scrollSpeed) - (0.1 * obj.z);
