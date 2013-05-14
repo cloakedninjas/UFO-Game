@@ -7,8 +7,8 @@ var Game = {
 	UFO_BEAM_RIGHT_POS: 106,
 	UFO_BEAM_MAX_HEIGHT: 339,
 	UFO_BEAM_SPEED: 30,
-	UFO_SUCK_SPEED: 7,
-	UFO_MOVE_SPEED: 10,
+	UFO_SUCK_SPEED: 150,
+	UFO_MOVE_SPEED: 300,
 
     Z_INDEX: {
         UFO: 5,
@@ -207,12 +207,13 @@ var Game = {
         this.grass.set({x: 0, z: Game.Z_INDEX.GRASS});
         this.grass.addToStage();
 
+        /*
         this.debug.fps = new createjs.Text(createjs.Ticker.getMeasuredFPS(), "20px Arial", "#ff7700");
         this.debug.fps.x = 50;
         this.debug.fps.y = 50;
         this.debug.fps.textBaseline = "alphabetic";
-
         this.stage.addChild(this.debug.fps);
+        */
 	},
 
     tick: function(event, target) {
@@ -220,7 +221,7 @@ var Game = {
             return;
         }
 
-        this.debug.fps.set({text: Math.round(createjs.Ticker.getMeasuredFPS())});
+        //this.debug.fps.set({text: Math.round(createjs.Ticker.getMeasuredFPS())});
 
         var i;
 
@@ -236,10 +237,10 @@ var Game = {
 		// handle input
 
 		if (this.actionKeys.moveUp) {
-			this.moveUfo('up');
+			this.moveUfo('up', event.delta);
 		}
 		else if (this.actionKeys.moveDown) {
-			this.moveUfo('down');
+			this.moveUfo('down', event.delta);
 		}
 
 		if (this.actionKeys.beam) {
@@ -279,7 +280,7 @@ var Game = {
 			cow = this.cows[i];
 
 			if (cow.sucked) {
-				var newY = cow.y - Game.UFO_SUCK_SPEED;
+				var newY = cow.y - this._getMoveDistance(Game.UFO_SUCK_SPEED, event.delta);
                 var suckDistance = cow.startY - newY;
                 var scale = 1 - (suckDistance / 200);
 
@@ -388,8 +389,8 @@ var Game = {
       return delta / 1000 * pixelsPerSecond
     },
 
-	moveUfo: function(dir) {
-		var y = Game.UFO_MOVE_SPEED;
+	moveUfo: function(dir, delta) {
+		var y = this._getMoveDistance(Game.UFO_MOVE_SPEED, delta);
 
 		if (dir === 'up') {
 			y = y * -1;
@@ -397,6 +398,7 @@ var Game = {
 
 		y = this.ufo.y + y;
 
+        // ensure UFO stops at bounds
 		if (y <= 0) {
 			y = 0;
 		}
