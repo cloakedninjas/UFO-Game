@@ -9,6 +9,7 @@ var Game = {
 	UFO_BEAM_SPEED: 30,
 	UFO_SUCK_SPEED: 150,
 	UFO_MOVE_SPEED: 300,
+    MAX_TUFTS: 1,
 
     Z_INDEX: {
         UFO: 5,
@@ -209,7 +210,7 @@ var Game = {
         this.grass.set({x: 0, z: Game.Z_INDEX.GRASS});
         this.grass.addToStage();
 
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < Game.MAX_TUFTS; i++) {
             this.addGrassTuft(true);
         }
 
@@ -276,11 +277,23 @@ var Game = {
 		this.grass.set('x', newX);
 
         for (i = 0; i < this.grassTufts.length; i++) {
-            newX = this.grassTufts[i].x + this._getScrolledX(this.grass, event.delta);
+            newX = this._getScrolledX(this.grassTufts[i], event.delta);
+
             if (i === 0) {
-                console.log(newX);
+                console.log('x:', newX);
             }
-            this.grassTufts[i].set('x', newX);
+
+            if (newX <= -162) {
+                console.log('removing tuft at: ' + newX);
+                this.removeTuft(this.grassTufts[i]);
+            }
+            else {
+                this.grassTufts[i].set('x', newX);
+            }
+        }
+
+        if (this.grassTufts.length < Game.MAX_TUFTS) {
+            this.addGrassTuft();
         }
 
 		// ensure we have a steady supply of cows
@@ -390,18 +403,43 @@ var Game = {
 	},
 
     addGrassTuft: function(immediate) {
-        var tuft = new GameObject();
         var minY = 325;
-        var maxY = this.viewport.height;
+        var maxY = this.viewport.height - 20;
 
         var x = Math.floor(Math.random() * this.viewport.width);
-        var y = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
+        var y = 200; //Math.floor(Math.random() * (maxY - minY + 1)) + minY;
 
-        tuft.setDisplayObject(new createjs.Bitmap("/images/grass_1.png"));
-        tuft.set({x: x, y: y, z: Game.Z_INDEX.GRASS, regY: 27});
+        console.log('adding tuft @ x:', x);
+
+        var img = new Image();
+        img.src = '/images/grass_1.png';
+
+        //var matrix = new createjs.Matrix2D();
+        //matrix.translate(0, -3);
+
+        var width = 162; //Math.random() * 50;
+
+        var tuft = new GameObject();
+        //tuft.set({x: x, y: y, z: Game.Z_INDEX.GRASS}); //, regY: 27
+
+        var g = new createjs.Graphics().beginBitmapFill(img, 'repeat'); //, matrix
+        g.setStrokeStyle(1).beginStroke(createjs.Graphics.getRGB(255,0,0));
+        g.drawRect(x,y, width, 27);
+
+        var s = new createjs.Shape(g);
+        s.snapToPixel = true;
+
+        tuft.setDisplayObject(s);
         tuft.addToStage();
 
         this.grassTufts.push(tuft);
+    },
+
+    removeTuft: function(tuft) {
+        var index = this.grassTufts.indexOf(tuft);
+
+        this.grassTufts.splice(index, 1);
+        tuft.removeFromStage();
     },
 
 	_getScrolledX: function(obj, delta) {
