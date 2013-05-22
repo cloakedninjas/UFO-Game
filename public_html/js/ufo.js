@@ -277,10 +277,11 @@ var Game = {
 		this.grass.set('x', newX);
 
         for (i = 0; i < this.grassTufts.length; i++) {
-            newX = this._getScrolledX(this.grassTufts[i], event.delta);
+            //newX = this._getScrolledX(this.grassTufts[i], event.delta);
+            newX = this._getMoveDistance(event.delta, 20);
 
             if (i === 0) {
-                console.log('x:', newX);
+               console.log('x:', this.grassTufts[i].x, newX);
             }
 
             if (newX <= -162) {
@@ -288,7 +289,9 @@ var Game = {
                 this.removeTuft(this.grassTufts[i]);
             }
             else {
-                this.grassTufts[i].set('x', newX);
+                //this.grassTufts[i].set({x: newX});
+
+                this.grassTufts[i].x -= newX;
             }
         }
 
@@ -406,33 +409,42 @@ var Game = {
         var minY = 325;
         var maxY = this.viewport.height - 20;
 
-        var x = Math.floor(Math.random() * this.viewport.width);
+        var x = 200; //Math.floor(Math.random() * this.viewport.width);
         var y = 200; //Math.floor(Math.random() * (maxY - minY + 1)) + minY;
+        var width = 162; //Math.random() * 50;
 
         console.log('adding tuft @ x:', x);
 
         var img = new Image();
         img.src = '/images/grass_1.png';
 
+        var s = new createjs.Shape();
+        s.snapToPixel = true;
+
+        s.graphics.clear()
+            .beginBitmapFill(img, "repeat")
+            .setStrokeStyle(1)
+            .beginStroke(createjs.Graphics.getRGB(255,0,0))
+            .drawRect(x,y, width, 27);
+
+        this.stage.addChild(s);
+
         //var matrix = new createjs.Matrix2D();
         //matrix.translate(0, -3);
-
-        var width = 162; //Math.random() * 50;
 
         var tuft = new GameObject();
         //tuft.set({x: x, y: y, z: Game.Z_INDEX.GRASS}); //, regY: 27
 
-        var g = new createjs.Graphics().beginBitmapFill(img, 'repeat'); //, matrix
-        g.setStrokeStyle(1).beginStroke(createjs.Graphics.getRGB(255,0,0));
-        g.drawRect(x,y, width, 27);
+        //var g = new createjs.Graphics().beginBitmapFill(img, 'repeat'); //, matrix
+        //g.setStrokeStyle(1).beginStroke(createjs.Graphics.getRGB(255,0,0));
+        //g.drawRect(x,y, width, 27);
 
-        var s = new createjs.Shape(g);
-        s.snapToPixel = true;
 
-        tuft.setDisplayObject(s);
-        tuft.addToStage();
 
-        this.grassTufts.push(tuft);
+        //tuft.setDisplayObject(s);
+        //tuft.addToStage();
+
+        this.grassTufts.push(s); //tuft
     },
 
     removeTuft: function(tuft) {
