@@ -32,7 +32,8 @@ var Game = {
         '/images/shadow_cow.png',
 		'/images/grass_parallax.png',
         '/images/grass_1.png',
-		'/images/ufo.png'
+		'/images/ufo.png',
+        '/images/jeep.png'
 	],
 
     debug: {
@@ -65,6 +66,7 @@ var Game = {
     grassTufts: [],
     ufo: null,
     cows: [],
+    jeep: null,
 
     // animations
 	spritesheets: {
@@ -371,6 +373,28 @@ var Game = {
                 }
             }
 		}
+
+        // should we place a jeep?
+
+        if (this.jeep === null) {
+            var rnd = Math.random();
+            if (rnd > 0.9) { // terrible, do something better
+                var jeep = new GameObject();
+                jeep.setDisplayObject(new createjs.Bitmap("/images/jeep.png"));
+                jeep.set({x: this.viewport.width + 100, y: 350, z: Game.Z_INDEX.COW, regX: 52, regY: 94});
+                jeep.addToStage();
+                this.jeep = jeep;
+            }
+        }
+        else {
+            if (this.jeep.x <= - 104) {
+                this.jeep = null;
+            }
+            else {
+                newX = this.jeep.x - this._getMoveDistanceByZIndex(event.delta, cow.z);
+                this.jeep.set('x', newX);
+            }
+        }
 
 		this.stage.update();
     },
