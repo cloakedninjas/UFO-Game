@@ -223,8 +223,10 @@ var Game = {
         this.grass.set({x: 0, z: Game.Z_INDEX.GRASS});
         this.grass.addToStage();
 
-        for (var i = 0; i < Game.MAX_TUFTS; i++) {
+        var lastX = 0;
+        while (lastX < this.viewport.width) {
             this.addGrassTuft(true);
+            lastX = this.grassTufts[this.grassTufts.length - 1].x;
         }
 
         /*
@@ -291,18 +293,21 @@ var Game = {
 
         // move grass tufts
 
+        var addTuft = false;
+
         for (i = 0; i < this.grassTufts.length; i++) {
             newX = this.grassTufts[i].x - this._getMoveDistanceByZIndex(event.delta, Game.Z_INDEX.COW);
 
             if (newX <= -162) {
                 this.removeTuft(this.grassTufts[i]);
+                addTuft = true;
             }
             else {
                 this.grassTufts[i].set({x: newX});
             }
         }
 
-        if (this.grassTufts.length < Game.MAX_TUFTS) {
+        if (addTuft) {
             this.addGrassTuft();
         }
 
@@ -415,12 +420,19 @@ var Game = {
     addGrassTuft: function(immediate) {
         var minY = 325;
         var maxY = this.viewport.height - 20;
+        var x = 0;
 
-        var x = Math.floor(Math.random() * this.viewport.width);
+        if (this.grassTufts.length === 0) {
+            x += this._getRandomNumber(20, 100);
+        }
+        else {
+            x += this.grassTufts[this.grassTufts.length - 1].x + Math.random() * 150;
+        }
+
         var y = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
 
         if (!immediate) {
-            x += this.viewport.width;
+            x = this.viewport.width + 50;
         }
 
         var spriteNum = Math.round(Math.random() * this.spritesheets.tufts.frames.length);
@@ -456,6 +468,10 @@ var Game = {
 
     _getMoveDistance: function(delta, pixelsPerSecond) {
       return delta / 1000 * pixelsPerSecond
+    },
+
+    _getRandomNumber: function (min, max) {
+        return Math.random() * (max - min) + min;
     },
 
 	moveUfo: function(dir, delta) {
