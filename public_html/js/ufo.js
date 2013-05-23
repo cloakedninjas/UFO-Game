@@ -9,7 +9,7 @@ var Game = {
 	UFO_BEAM_SPEED: 30,
 	UFO_SUCK_SPEED: 150,
 	UFO_MOVE_SPEED: 300,
-    MAX_TUFTS: 1,
+    MAX_TUFTS: 5,
 
     Z_INDEX: {
         UFO: 5,
@@ -84,7 +84,20 @@ var Game = {
 			animations: {
 				munch: [0,3, 'munch', 5]
 			}
-		}
+		},
+        tufts: {
+            images: ['/images/grass_1.png'],
+            // x, y, width, height, imageIndex, regX, regY
+            frames: [
+                [0,0,27,27,0,14,22],
+                [20,0,18,27,0,9,22],
+                [37,0,24,27,0,12,22],
+                [80,0,40,27,0,20,22],
+                [119,0,42,27,0,21,22],
+                [60,0,48,27,0,24,22],
+                [37,0,71,27,0,35,22]
+            ]
+        }
 	},
 
     init: function() {
@@ -259,7 +272,7 @@ var Game = {
 
 			var cloud = this.clouds[i];
 
-            var newX = this._getScrolledX(cloud, event.delta);
+            var newX = cloud.x - this._getMoveDistanceByZIndex(event.delta, cloud.z);
 
             if (newX <= -300) {
                 newX = this.viewport.width + Math.round(Math.random() * 200);
@@ -268,30 +281,24 @@ var Game = {
             cloud.set({x: newX});
         }
 
-		// move grass
-		newX = this._getScrolledX(this.grass, event.delta);
+		// move grass in distance
+		newX = this.grass.x - this._getMoveDistanceByZIndex(event.delta, Game.Z_INDEX.COW);
 
 		if (newX <= -116) {
 			newX = 0;
 		}
 		this.grass.set('x', newX);
 
-        for (i = 0; i < this.grassTufts.length; i++) {
-            //newX = this._getScrolledX(this.grassTufts[i], event.delta);
-            newX = this._getMoveDistance(event.delta, 20);
+        // move grass tufts
 
-            if (i === 0) {
-               console.log('x:', this.grassTufts[i].x, newX);
-            }
+        for (i = 0; i < this.grassTufts.length; i++) {
+            newX = this.grassTufts[i].x - this._getMoveDistanceByZIndex(event.delta, Game.Z_INDEX.COW);
 
             if (newX <= -162) {
-                console.log('removing tuft at: ' + newX);
                 this.removeTuft(this.grassTufts[i]);
             }
             else {
-                //this.grassTufts[i].set({x: newX});
-
-                this.grassTufts[i].x -= newX;
+                this.grassTufts[i].set({x: newX});
             }
         }
 
@@ -337,7 +344,7 @@ var Game = {
 				}
 			}
 			else {
-				newX = this._getScrolledX(cow, event.delta);
+                newX = cow.x - this._getMoveDistanceByZIndex(event.delta, cow.z);
 
 				if (newX <= -50) {
                     this.removeCow(cow);
@@ -409,42 +416,25 @@ var Game = {
         var minY = 325;
         var maxY = this.viewport.height - 20;
 
-        var x = 200; //Math.floor(Math.random() * this.viewport.width);
-        var y = 200; //Math.floor(Math.random() * (maxY - minY + 1)) + minY;
-        var width = 162; //Math.random() * 50;
+        var x = Math.floor(Math.random() * this.viewport.width);
+        var y = Math.floor(Math.random() * (maxY - minY + 1)) + minY;
 
-        console.log('adding tuft @ x:', x);
+        if (!immediate) {
+            x += this.viewport.width;
+        }
 
-        var img = new Image();
-        img.src = '/images/grass_1.png';
+        var spriteNum = Math.round(Math.random() * this.spritesheets.tufts.frames.length);
 
-        var s = new createjs.Shape();
-        s.snapToPixel = true;
-
-        s.graphics.clear()
-            .beginBitmapFill(img, "repeat")
-            .setStrokeStyle(1)
-            .beginStroke(createjs.Graphics.getRGB(255,0,0))
-            .drawRect(x,y, width, 27);
-
-        this.stage.addChild(s);
-
-        //var matrix = new createjs.Matrix2D();
-        //matrix.translate(0, -3);
+        var spritesheet = new createjs.SpriteSheet(this.spritesheets.tufts);
+        var bma = new createjs.BitmapAnimation(spritesheet);
+        bma.gotoAndStop(spriteNum);
 
         var tuft = new GameObject();
-        //tuft.set({x: x, y: y, z: Game.Z_INDEX.GRASS}); //, regY: 27
+        tuft.setDisplayObject(bma);
+        tuft.set({x: x, y: y, z: Game.Z_INDEX.GRASS});
+        tuft.addToStage();
 
-        //var g = new createjs.Graphics().beginBitmapFill(img, 'repeat'); //, matrix
-        //g.setStrokeStyle(1).beginStroke(createjs.Graphics.getRGB(255,0,0));
-        //g.drawRect(x,y, width, 27);
-
-
-
-        //tuft.setDisplayObject(s);
-        //tuft.addToStage();
-
-        this.grassTufts.push(s); //tuft
+        this.grassTufts.push(tuft);
     },
 
     removeTuft: function(tuft) {
@@ -454,14 +444,14 @@ var Game = {
         tuft.removeFromStage();
     },
 
-	_getScrolledX: function(obj, delta) {
-		var x = this._getMoveDistance(delta, this.scrollSpeed) - (0.1 * obj.z);
+    _getMoveDistanceByZIndex: function(delta, z) {
+		var x = this._getMoveDistance(delta, this.scrollSpeed) - (0.1 * z);
 
 		if (x <= 0) {
 			x = 0.1;
 		}
 
-		return obj.x - x;
+		return x;
 	},
 
     _getMoveDistance: function(delta, pixelsPerSecond) {
