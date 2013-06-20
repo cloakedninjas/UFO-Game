@@ -9,3 +9,12 @@ canvas {
     background: url(/images/bg.png) 0 0 repeat-x;
 
 }
+
+#score {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    padding: 3px 0 0 40px;
+    font-family: 'Wide awake Black', verdana, sans-serif;
+    background: url(/images/cow_counter.png) 0 0 no-repeat;
+}

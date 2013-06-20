@@ -67,6 +67,9 @@ var Game = {
     ufo: null,
     cows: [],
     jeep: null,
+    
+    score: 0,
+    scorePerCow: 1,
 
     // animations
 	spritesheets: {
@@ -348,6 +351,8 @@ var Game = {
                 // if cow reaches UFO, abduction complete
 				if (cow.y <= this.ufo.y + 10) {
 					this.removeCow(cow);
+                    this.incrementScore();
+                    this.renderScore();
 				}
 			}
 			else {
@@ -548,6 +553,14 @@ var Game = {
         if (a.z > b.z)
             return -1;
         return 0;
+    },
+    
+    incrementScore: function() {
+        this.score += this.scorePerCow;
+    },
+    
+    renderScore: function() {
+        $('#score').text(this.score);
     }
 };
 
