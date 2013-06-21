@@ -68,8 +68,23 @@ var Game = {
     cows: [],
     jeep: null,
     
+    //scoring
     score: 0,
     scorePerCow: 1,
+    
+    // spawning system
+    spawner: {
+        lastSpawn: {
+            cow: null,
+            jeep: null,
+            chopper: null
+        },
+        frequency: {
+            cow: [1000, 3000],
+            jeep: [5000, 10000],
+            chopper: [8000, 15000]
+        }        
+    },
 
     // animations
 	spritesheets: {
@@ -321,6 +336,24 @@ var Game = {
 		if (lastCow.x <= this.viewport.width - this.COW_SPAWN_DISTANCE) {
 			this.addCow();
 		}
+        /*
+        
+        go through each spawnable        
+        
+        if (event.time - spawner.lastSpawn.cow > spawner.frequency.cow[0]) {
+            // dont spawn at min time, spawn between min + max time for element of randomness
+            this.addCow(); // maybe x pixels off screen?
+        }
+        
+        if (event.time - spawner.lastSpawn.jeep > spawner.frequency.jeep[0]) {
+            this.addJeep();
+        }
+        
+        if (event.time - spawner.lastSpawn.chopper > spawner.frequency.chopper[0]) {
+            this.addChopper();
+        }
+        
+        */
 
 		// move the cows
 		for (i = 0; i < this.cows.length; i++) {
@@ -381,7 +414,7 @@ var Game = {
 
         // should we place a jeep?
 
-        if (this.jeep === null) {
+        if (this.jeep !== null) {
             var rnd = Math.random();
             if (rnd > 0.9) { // terrible, do something better
                 var jeep = new GameObject();
@@ -437,6 +470,8 @@ var Game = {
 
 		this.cows.push(cow);
 		cow.addToStage();
+        
+        this.spawner.lastSpawn.cow = createjs.Ticker.getTime();
 	},
 
 	removeCow: function(cow) {
@@ -483,6 +518,16 @@ var Game = {
 
         this.grassTufts.splice(index, 1);
         tuft.removeFromStage();
+    },
+    
+    addJeep: function() {
+        var jeep = new GameObject();
+        jeep.setDisplayObject(new createjs.Bitmap("/images/jeep.png"));
+        jeep.set({x: this.viewport.width + 100, y: 350, z: Game.Z_INDEX.COW, regX: 52, regY: 94});
+        jeep.addToStage();
+        this.jeep = jeep;
+        
+        this.spawner.lastSpawn.jeep = createjs.Ticker.getTime();
     },
 
     _getMoveDistanceByZIndex: function(delta, z) {
