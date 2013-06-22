@@ -415,16 +415,6 @@ var Game = {
         // should we place a jeep?
 
         if (this.jeep !== null) {
-            var rnd = Math.random();
-            if (rnd > 0.9) { // terrible, do something better
-                var jeep = new GameObject();
-                jeep.setDisplayObject(new createjs.Bitmap("/images/jeep.png"));
-                jeep.set({x: this.viewport.width + 100, y: 350, z: Game.Z_INDEX.COW, regX: 52, regY: 94});
-                jeep.addToStage();
-                this.jeep = jeep;
-            }
-        }
-        else {
             if (this.jeep.x <= - 104) {
                 this.jeep = null;
             }
