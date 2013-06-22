@@ -336,25 +336,26 @@ var Game = {
 		if (lastCow.x <= this.viewport.width - this.COW_SPAWN_DISTANCE) {
 			this.addCow();
 		}
-        /*
+
+        //go through each spawnable
         
-        go through each spawnable        
-        
-        if (event.time - spawner.lastSpawn.cow > spawner.frequency.cow[0]) {
+        if (event.time - this.spawner.lastSpawn.cow > this.spawner.frequency.cow[0]) {
             // dont spawn at min time, spawn between min + max time for element of randomness
             this.addCow(); // maybe x pixels off screen?
         }
-        
-        if (event.time - spawner.lastSpawn.jeep > spawner.frequency.jeep[0]) {
+
+        /*
+        if (event.time - this.spawner.lastSpawn.jeep > this.spawner.frequency.jeep[0]) {
             this.addJeep();
         }
-        
-        if (event.time - spawner.lastSpawn.chopper > spawner.frequency.chopper[0]) {
-            this.addChopper();
-        }
-        
         */
 
+        /*
+        if (event.time - this.spawner.lastSpawn.chopper > this.spawner.frequency.chopper[0]) {
+            this.addChopper();
+        }
+        */
+        
 		// move the cows
 		for (i = 0; i < this.cows.length; i++) {
 			cow = this.cows[i];
@@ -411,8 +412,6 @@ var Game = {
                 }
             }
 		}
-
-        // should we place a jeep?
 
         if (this.jeep !== null) {
             if (this.jeep.x <= - 104) {
